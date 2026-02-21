@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0d1117;
+  --foreground: #e2e8f0;
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b27;
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(99, 179, 237, 0.4);
+  --accent-primary: #63b3ed;
+  --accent-secondary: #f6ad55;
+  --text-primary: #e2e8f0;
+  --text-secondary: #718096;
+  --text-muted: #4a5568;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-noto-sans-tc), system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+}
+
+/* Mesh gradient background */
+.bg-mesh {
+  background:
+    radial-gradient(ellipse 600px 400px at 10% 20%, rgba(99, 179, 237, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 600px at 90% 80%, rgba(246, 173, 85, 0.05) 0%, transparent 70%),
+    var(--bg-primary);
+}
+
+/* Float animation for empty state icon */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Page load fade-in-up animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* Glass search input */
+.search-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  transition: all 200ms ease;
+}
+
+.search-glass:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.search-glass:focus {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.15), 0 8px 32px rgba(0, 0, 0, 0.4);
+  outline: none;
+}
+
+/* 標籤樣式 - 深色友善配色 */
+.label-good {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.label-normal {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fde68a;
+}
+
+.label-high {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+/* Logo 發光效果 */
+.logo-glow {
+  filter: invert(1)
+          drop-shadow(0 0 20px rgba(129, 140, 248, 0.9))
+          drop-shadow(0 0 40px rgba(129, 140, 248, 0.5))
+          drop-shadow(0 0 60px rgba(129, 140, 248, 0.25));
+}
+
+/* 深色 Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Sheet 側邊欄動畫 */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s ease-out;
+}

@@ -1,0 +1,105 @@
+name: Daily GK Crawler
+
+on:
+  # 每天台灣時間凌晨 3:00 執行（UTC 19:00）
+  schedule:
+    - cron: '0 19 * * *'
+
+  # 也可以手動觸發
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: '每個分類要爬取的頁數（預設 3）'
+        required: false
+        default: '3'
+
+jobs:
+  crawl-and-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Chrome browser
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Create package.json for crawler
+        run: |
+          cat > crawler-package.json << 'EOF'
+          {
+            "name": "gk-crawler",
+            "version": "1.0.0",
+            "dependencies": {
+              "puppeteer-core": "^22.0.0",
+              "@supabase/supabase-js": "^2.39.0",
+              "dotenv": "^16.3.1"
+            }
+          }
+          EOF
+          mv crawler-package.json package.json
+          npm install
+
+      - name: Update crawler to use puppeteer-core
+        run: |
+          # 修改爬蟲腳本使用 puppeteer-core 和系統 Chrome
+          sed -i "s/require('puppeteer')/require('puppeteer-core')/" scripts/crawler-quick.js
+          sed -i "s/headless: 'new'/headless: 'new', executablePath: process.env.CHROME_PATH || '\/usr\/bin\/google-chrome-stable'/" scripts/crawler-quick.js
+
+      - name: Run Crawler
+        run: |
+          PAGES=${{ github.event.inputs.pages || '3' }}
+          echo "🕷️ 開始爬取全分類最新 ${PAGES} 頁公仔..."
+          echo "Chrome 路徑: $(which google-chrome-stable || which chromium-browser || echo 'not found')"
+          CHROME_PATH=$(which google-chrome-stable || which chromium-browser) node scripts/crawler-quick.js --pages=${PAGES} --no-nightwind
+        env:
+          CHROME_PATH: /usr/bin/google-chrome-stable
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Check crawler output
+        if: always()
+        run: |
+          echo "檢查爬蟲輸出..."
+          ls -la *.csv 2>/dev/null || echo "沒有 CSV 檔案"
+          if [ -f crawler-output-quick.csv ]; then
+            echo "CSV 檔案內容（前 10 行）："
+            head -10 crawler-output-quick.csv
+            echo ""
+            TOTAL=$(wc -l < crawler-output-quick.csv)
+            echo "📊 共 $((TOTAL - 1)) 筆資料"
+          fi
+
+      - name: Upload crawler output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crawler-output-${{ github.run_number }}
+          path: |
+            crawler-output-quick.csv
+            *.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🎉 每日爬蟲執行結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f crawler-output-quick.csv ]; then
+            COUNT=$(wc -l < crawler-output-quick.csv)
+            echo "📊 爬取到 $((COUNT - 1)) 筆公仔資料（全 15 分類）" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ 沒有產生爬蟲輸出檔案" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⏰ 執行時間: $(date '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
