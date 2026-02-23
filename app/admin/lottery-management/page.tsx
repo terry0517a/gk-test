@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
+interface DuplicateReport {
+  id: string
+  email: string
+  figure_name: string
+  deal_price: number
+  status: string
+  created_at: string
+}
+
 interface PriceReport {
   id: string
   email: string
@@ -17,6 +26,7 @@ interface PriceReport {
   status: string
   admin_note: string | null
   created_at: string
+  duplicates: DuplicateReport[] | null
 }
 
 interface LeaderboardEntry {
@@ -207,22 +217,106 @@ export default function LotteryManagementPage() {
 
   // 通知中獎
   const [sendingEmail, setSendingEmail] = useState<string | null>(null)
-  const handleNotifyWinner = async (email: string) => {
-    if (!confirm(`確定要發送中獎通知給 ${email}？`)) return
+  const [notifyingEmail, setNotifyingEmail] = useState<string | null>(null)
+
+  const getWinnerEmailTemplate = (prize: string, email: string): { subject: string; html: string } => {
+    const name = email
+    if (prize === '大獎') {
+      return {
+        subject: '🎊【恭喜你中大獎啦！】GK 報價王 大獎得主通知',
+        html: `
+<p>嗨，${name} 你好！</p>
+<p>哇——你真的中了！🎉</p>
+<p>非常恭喜你獲得本次【GK 報價王】的 <strong>大獎</strong>！<br/>
+獎品是超猛的 <strong>UNiQUE ART＞火影忍者＞1/6 旗木·卡卡西 &amp; 宇智波帶土</strong>，是我們這次活動最頂級的獎項，你真的太幸運啦！</p>
+<hr/>
+<p><strong>領獎方式 — 實體郵寄</strong></p>
+<p>為了讓獎品順利寄達，請你在期限內提供以下資訊，回覆至本信箱：</p>
+<ul>
+<li>收件人姓名：</li>
+<li>收件地址（含郵遞區號）：</li>
+<li>聯絡電話：</li>
+</ul>
+<p>⚠️ <strong>運費須由得獎者自行負擔</strong>，我們會在確認收件資訊後告知實際運費金額。</p>
+<p><strong>領獎期限：收到本通知後 7 日內</strong><br/>
+逾期視同放棄，請一定要把握機會喔！</p>
+<hr/>
+<p>如果有任何問題，請直接透過 Instagram 私訊聯絡我們，回覆最快速：</p>
+<p>👉 Instagram：<a href="https://www.instagram.com/gk_collector" target="_blank">@gk_collector</a></p>
+<p>也可以寄信至：gkcollectorwork@gmail.com</p>
+<p>再次恭喜你！期待把大獎送到你手上<br/>
+GK 收藏家 敬上</p>`,
+      }
+    }
+    if (prize === '二獎') {
+      return {
+        subject: '🎁【恭喜中獎！】GK 報價王 二獎得主通知',
+        html: `
+<p>嗨，${name} 你好！</p>
+<p>超級恭喜你！🎊</p>
+<p>你在本次【GK 報價王】活動中抽中了 <strong>二獎</strong> — <strong>夢之船「五條悟」低配版 A 款</strong>！<br/>
+在這麼多參加者之中脫穎而出，你真的很棒</p>
+<p>⚠️ 溫馨提醒：此獎品只有彩盒，但我們會額外提供一個紙箱作為外箱，用來保護商品寄送，請放心！</p>
+<hr/>
+<p><strong>領獎方式 — 實體郵寄</strong></p>
+<p>請在期限內將以下資料回覆至本信箱，我們會盡快安排寄出：</p>
+<ul>
+<li>收件人姓名：</li>
+<li>收件地址（含郵遞區號）：</li>
+<li>聯絡電話：</li>
+</ul>
+<p>⚠️ <strong>運費須由得獎者自行負擔</strong>，我們會在確認收件資訊後告知實際運費金額。</p>
+<p><strong>領獎期限：收到本通知後 7 日內</strong><br/>
+請記得在期限內回覆，逾期將視同放棄領獎資格。</p>
+<hr/>
+<p>如果有任何問題，請直接透過 Instagram 私訊聯絡我們，回覆最快速：</p>
+<p>👉 Instagram：<a href="https://www.instagram.com/gk_collector" target="_blank">@gk_collector</a></p>
+<p>也可以寄信至：gkcollectorwork@gmail.com</p>
+<p>再次恭喜你，期待與你分享這份小驚喜！<br/>
+GK 收藏家 敬上</p>`,
+      }
+    }
+    // 三獎
+    return {
+      subject: '🎀【你中獎啦！】GK 報價王 三獎得主通知',
+      html: `
+<p>嗨，${name} 你好！</p>
+<p>恭喜恭喜！🎉</p>
+<p>你參加的【GK 報價王】活動，我們很開心地通知你——你中了 <strong>三獎</strong> — <strong>神隱工作室 千尋 小千 無臉男</strong>！<br/>
+感謝你的熱情參與，這份小禮物是我們送給你的心意</p>
+<hr/>
+<p><strong>領獎方式 — 實體郵寄</strong></p>
+<p>請在期限內回覆以下資料，讓我們把獎品送到你家門口：</p>
+<ul>
+<li>收件人姓名：</li>
+<li>收件地址（含郵遞區號）：</li>
+<li>聯絡電話：</li>
+</ul>
+<p>⚠️ <strong>運費須由得獎者自行負擔</strong>，我們會在確認收件資訊後告知實際運費金額。</p>
+<p><strong>領獎期限：收到本通知後 7 日內</strong><br/>
+逾期將無法補寄，請務必留意喔！</p>
+<hr/>
+<p>如果有任何問題，請直接透過 Instagram 私訊聯絡我們，回覆最快速：</p>
+<p>👉 Instagram：<a href="https://www.instagram.com/gk_collector" target="_blank">@gk_collector</a></p>
+<p>也可以寄信至：gkcollectorwork@gmail.com</p>
+<p>再次感謝你的參與，希望你喜歡這份驚喜！<br/>
+GK 收藏家 敬上</p>`,
+    }
+  }
+
+  const handleNotifyWinner = async (email: string, prize: string) => {
     setSendingEmail(email)
+    setNotifyingEmail(null)
     try {
+      const { subject, html } = getWinnerEmailTemplate(prize, email)
       const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          subject: '【GK 收藏家】恭喜您中獎！',
-          html: '<p>恭喜您中獎！請於 3 日內聯繫官方領取獎品。</p>',
-        }),
+        body: JSON.stringify({ email, subject, html }),
       })
       const data = await res.json()
       if (res.ok) {
-        setMessage({ type: 'success', text: data.simulated ? '郵件已模擬發送（尚未設定 Gmail 環境變數）' : '中獎通知已發送' })
+        setMessage({ type: 'success', text: data.simulated ? '郵件已模擬發送（尚未設定 Gmail 環境變數）' : `${prize}通知已發送` })
       } else {
         setMessage({ type: 'error', text: data.error || '發送失敗' })
       }
@@ -414,6 +508,27 @@ export default function LotteryManagementPage() {
                       <span>{new Date(report.created_at).toLocaleString('zh-TW')}</span>
                     </div>
 
+                    {/* 重複資料警告 */}
+                    {report.duplicates && report.duplicates.length > 0 && (
+                      <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-xs font-medium text-amber-700 flex items-center gap-1 mb-1">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          疑似重複回報（同名稱，共 {report.duplicates.length} 筆）
+                        </p>
+                        <div className="space-y-1">
+                          {report.duplicates.map(dup => (
+                            <p key={dup.id} className="text-[11px] text-amber-600">
+                              {dup.email} ・NT$ {Number(dup.deal_price).toLocaleString()} ・
+                              {{ approved: '已核准', rejected: '已退回', pending: '待審核' }[dup.status] || dup.status} ・
+                              {new Date(dup.created_at).toLocaleString('zh-TW')}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* 截圖預覽 */}
                     <div className="flex gap-2 mb-3">
                       {report.screenshot_url && (
@@ -531,7 +646,7 @@ export default function LotteryManagementPage() {
                     </div>
                     <div className="text-center">
                       <button
-                        onClick={() => handleNotifyWinner(entry.email)}
+                        onClick={() => setNotifyingEmail(entry.email)}
                         disabled={sendingEmail === entry.email}
                         className="px-1.5 py-1 text-[10px] bg-orange-500 text-white rounded hover:bg-orange-600 disabled:bg-gray-300 transition-colors whitespace-nowrap"
                       >
@@ -573,6 +688,38 @@ export default function LotteryManagementPage() {
                 確認退回
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 獎項選擇彈窗 */}
+      {notifyingEmail && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">發送中獎通知</h3>
+            <p className="text-xs text-gray-500 mb-4 font-mono">{notifyingEmail}</p>
+            <p className="text-sm text-gray-700 mb-3">請選擇獎項等級：</p>
+            <div className="space-y-2">
+              {(['大獎', '二獎', '三獎'] as const).map(prize => (
+                <button
+                  key={prize}
+                  onClick={() => {
+                    if (confirm(`確定要發送「${prize}」通知給 ${notifyingEmail}？`)) {
+                      handleNotifyWinner(notifyingEmail, prize)
+                    }
+                  }}
+                  className="w-full py-2.5 text-sm font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                >
+                  {prize}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setNotifyingEmail(null)}
+              className="w-full mt-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              取消
+            </button>
           </div>
         </div>
       )}

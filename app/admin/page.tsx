@@ -44,6 +44,7 @@ interface Stats {
   today_visitors: number
   yesterday_visitors: number
   weekly_visitors: { date: string; count: number }[]
+  pwa_installs: number
 }
 
 export default function AdminPage() {
@@ -1586,6 +1587,10 @@ export default function AdminPage() {
               <div className="bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-xl p-4">
                 <p className="text-3xl font-bold">{stats.without_image_count}</p>
                 <p className="text-sm opacity-80">無照片 🚫</p>
+              </div>
+              <div className="bg-gradient-to-br from-rose-500 to-rose-600 text-white rounded-xl p-4">
+                <p className="text-3xl font-bold">{stats.pwa_installs}</p>
+                <p className="text-sm opacity-80">主畫面安裝數</p>
               </div>
             </div>
           ) : (

@@ -279,7 +279,7 @@ export default function LotteryPage() {
           </Link>
           <div className="text-center">
             <h1 className="text-lg font-bold text-white">GK 報價王</h1>
-            <p className="text-xs text-gray-400">別再被當肥羊宰！加入回報行列，一起透明化 GK 公仔市場。</p>
+            <p className="text-xs text-gray-400">加入回報行列，一起透明化 GK 公仔市場。</p>
           </div>
           <div className="w-16" />
         </div>
@@ -324,7 +324,7 @@ export default function LotteryPage() {
 
         {/* 回報表單 */}
         {activeTab === 'report' && (
-          <div className="bg-gray-800 rounded-xl p-6">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 overflow-hidden">
             <h2 className="text-xl font-bold text-white mb-1">回報成交紀錄</h2>
             <p className="text-gray-400 text-sm mb-6">
               每回報一筆可獲得 1 張抽獎券，附截圖再 +1 張，分享社群額外 +1 張！

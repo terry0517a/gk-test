@@ -9,7 +9,7 @@ function hashIP(ip: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { type, title, description, contact } = body
+    const { type, title, description, contact, affected_figure, steps_to_reproduce } = body
 
     // 驗證必填欄位
     if (!type || !title || !description) {
@@ -46,13 +46,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '提交頻率過高，請稍後再試' }, { status: 429 })
     }
 
+    // 將額外欄位合併到 description
+    let fullDescription = description.trim()
+    if (affected_figure?.trim()) {
+      fullDescription = `【有誤資料】${affected_figure.trim()}\n\n${fullDescription}`
+    }
+    if (steps_to_reproduce?.trim()) {
+      fullDescription = `【重現步驟】\n${steps_to_reproduce.trim()}\n\n${fullDescription}`
+    }
+
     // 新增問題回報
     const { data, error } = await supabase
       .from('issue_reports')
       .insert({
         type,
         title: title.trim(),
-        description: description.trim(),
+        description: fullDescription,
         contact: contact?.trim() || null,
         ip_hash: ipHash,
         status: 'pending',

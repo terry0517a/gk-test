@@ -127,3 +127,37 @@ body {
 .animate-slide-in-right {
   animation: slide-in-right 0.25s ease-out;
 }
+
+/* Feedback card scale-in animation */
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* PWA 安裝提示底部滑入動畫 */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* 統一手機上 input 欄位樣式 */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}

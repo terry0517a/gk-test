@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect, Suspense } from 'react'
+import { useState, useCallback, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import CountUp from 'react-countup'
 import SearchResults from '@/components/SearchResults'
+import FigureAutocomplete from '@/components/FigureAutocomplete'
+import SearchFilterBar, { type SearchFilters, applyFilters, emptyFilters } from '@/components/SearchFilterBar'
 
 interface Figure {
   id: string
@@ -21,6 +23,10 @@ interface Figure {
   market_price_max: number | null
   last_deal_date: string | null
   ai_sentiment: string
+  dimensions: string | null
+  material: string | null
+  order_date: string | null
+  shipping_date: string | null
 }
 
 interface SearchResponse {
@@ -32,6 +38,46 @@ interface SearchResponse {
   }[]
 }
 
+
+// 問題類型選項（共用常數）
+const ISSUE_TYPE_OPTIONS = [
+  {
+    value: 'bug',
+    label: '功能異常',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'data_error',
+    label: '資料錯誤',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+      </svg>
+    ),
+  },
+  {
+    value: 'suggestion',
+    label: '功能建議',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'other',
+    label: '其他問題',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+]
 
 // 維護模式開關 - 設為 false 即可恢復正常
 const MAINTENANCE_MODE = false
@@ -100,6 +146,16 @@ function HomeContent() {
   const [issueContact, setIssueContact] = useState('')
   const [issueSubmitting, setIssueSubmitting] = useState(false)
   const [issueSuccess, setIssueSuccess] = useState(false)
+  const [issueAffectedFigure, setIssueAffectedFigure] = useState('')
+  const [issueStepsToReproduce, setIssueStepsToReproduce] = useState('')
+
+  // 搜尋結果篩選
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>(emptyFilters)
+
+  const filteredFigures = useMemo(() => {
+    if (!results?.figures) return []
+    return applyFilters(results.figures, searchFilters)
+  }, [results?.figures, searchFilters])
 
   const doSearch = useCallback(async (searchQuery: string, updateUrl = true, tagFilter?: string | null) => {
     const hasQuery = searchQuery.trim().length > 0
@@ -109,6 +165,7 @@ function HomeContent() {
 
     setLoading(true)
     setError(null)
+    setSearchFilters(emptyFilters)
 
     // 更新 URL（不觸發頁面跳轉）
     if (updateUrl) {
@@ -262,6 +319,8 @@ function HomeContent() {
           title: issueTitle.trim(),
           description: issueDescription.trim(),
           contact: issueContact.trim() || null,
+          affected_figure: issueAffectedFigure.trim() || null,
+          steps_to_reproduce: issueStepsToReproduce.trim() || null,
         }),
       })
 
@@ -278,6 +337,8 @@ function HomeContent() {
         setIssueTitle('')
         setIssueDescription('')
         setIssueContact('')
+        setIssueAffectedFigure('')
+        setIssueStepsToReproduce('')
         setIssueSuccess(false)
       }, 1500)
     } catch (err) {
@@ -331,11 +392,18 @@ function HomeContent() {
           </section>
           <div className="flex-1 overflow-y-auto pb-4">
             {results && (
-              <SearchResults
-                figures={results.figures}
-                googleResults={results.google_results}
-                onFigureClick={handleFigureClick}
-              />
+              <>
+                <SearchFilterBar
+                  figures={results.figures}
+                  filters={searchFilters}
+                  onFiltersChange={setSearchFilters}
+                />
+                <SearchResults
+                  figures={filteredFigures}
+                  googleResults={results.google_results}
+                  onFigureClick={handleFigureClick}
+                />
+              </>
             )}
           </div>
         </>
@@ -429,7 +497,7 @@ function HomeContent() {
           </div>
 
           {/* 聯絡資訊 */}
-          <p className="text-xs text-[var(--text-muted)]">商業合作請聯繫：gkcollector@gmail.com｜Facebook：GK Colloctors</p>
+          <p className="text-xs text-[var(--text-muted)]">商業合作請聯繫：Instagram：<a href="https://www.instagram.com/gk_collector" target="_blank" className="underline">@gk_collector</a>｜Facebook：GK Collectors｜Email：gkcollector@gmail.com</p>
         </section>
       )}
 
@@ -471,14 +539,38 @@ function HomeContent() {
 
       {/* 回報價格 Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-gray-900 w-full rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => setShowReportModal(false)}>
+          <div className="bg-gray-900 w-full rounded-t-2xl p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+            {/* 關閉按鈕 */}
+            <button
+              onClick={() => setShowReportModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors z-10"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
             {submitSuccess ? (
-              <div className="text-center py-8">
-                <svg className="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <p className="text-lg font-medium text-white">感謝回報！</p>
+              <div className="text-center py-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center animate-scale-in">
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">回報成功！</h3>
+                <p className="text-gray-400 text-sm mb-6">感謝你的回報，資料審核後將更新至資料庫</p>
+                <button
+                  onClick={() => {
+                    setSubmitSuccess(false)
+                    setReportName('')
+                    setReportPrice('')
+                    setReportSource('')
+                    setReportManufacturer('')
+                  }}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors"
+                >
+                  繼續回報
+                </button>
               </div>
             ) : (
               <>
@@ -486,10 +578,9 @@ function HomeContent() {
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-400 mb-2">公仔名稱 *</label>
-                  <input
-                    type="text"
+                  <FigureAutocomplete
                     value={reportName}
-                    onChange={(e) => setReportName(e.target.value)}
+                    onChange={setReportName}
                     placeholder="例：初音未來 1/7 Scale"
                     className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500"
                   />
@@ -512,19 +603,45 @@ function HomeContent() {
                     type="number"
                     value={reportPrice}
                     onChange={(e) => setReportPrice(e.target.value)}
-                    placeholder="NT$"
+                    placeholder="請填寫實際成交金額（不含運費）"
                     className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500"
                   />
+                  {reportPrice && (Number(reportPrice) < 500 || Number(reportPrice) > 500000) && (
+                    <p className="mt-1.5 text-xs text-yellow-400 flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {Number(reportPrice) < 500
+                        ? '金額低於 NT$ 500，請確認價格是否正確'
+                        : '金額超過 NT$ 500,000，請確認價格是否正確'}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm text-gray-400 mb-2">來源說明（選填）</label>
+                  <label className="block text-sm text-gray-400 mb-2">交易平台（選填）</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {['蝦皮', 'FB 社團', '露天', '面交'].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setReportSource(reportSource === p ? '' : p)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
+                          reportSource === p
+                            ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                            : 'border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
-                    value={reportSource}
+                    value={['蝦皮', 'FB 社團', '露天', '面交'].includes(reportSource) ? '' : reportSource}
                     onChange={(e) => setReportSource(e.target.value)}
-                    placeholder="例：蝦皮、FB 社團、露天..."
-                    className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500"
+                    placeholder="或手動輸入其他平台..."
+                    className="w-full px-4 py-2.5 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500 text-sm"
                   />
                 </div>
 
@@ -535,13 +652,22 @@ function HomeContent() {
                   >
                     取消
                   </button>
-                  <button
-                    onClick={handleReportPrice}
-                    disabled={!reportName.trim() || !reportPrice || submitting}
-                    className="flex-1 py-3 bg-white text-gray-900 rounded-xl disabled:bg-gray-600"
-                  >
-                    {submitting ? '提交中...' : '提交'}
-                  </button>
+                  {(() => {
+                    const isReady = !!(reportName.trim() && reportPrice)
+                    return (
+                      <button
+                        onClick={handleReportPrice}
+                        disabled={!isReady || submitting}
+                        className={`flex-1 py-3 rounded-xl font-medium transition-colors ${
+                          isReady && !submitting
+                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {submitting ? '提交中...' : '提交'}
+                      </button>
+                    )
+                  })()}
                 </div>
               </>
             )}
@@ -551,8 +677,22 @@ function HomeContent() {
 
       {/* 問題回報 Modal */}
       {showIssueModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-end z-50">
-          <div className="bg-gray-900 w-full rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50 overflow-hidden" onClick={() => setShowIssueModal(false)}>
+          <div className="bg-gray-900 w-full rounded-t-2xl max-h-[85vh] flex flex-col relative" onClick={(e) => e.stopPropagation()}>
+            {/* 固定頂部：標題 + 關閉按鈕 */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
+              <h3 className="text-lg font-bold text-white">{issueSuccess ? '' : '回報問題'}</h3>
+              <button
+                onClick={() => setShowIssueModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* 可滾動內容 */}
+            <div className="overflow-y-auto overscroll-contain px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]" onTouchMove={(e) => e.stopPropagation()}>
             {issueSuccess ? (
               <div className="text-center py-8">
                 <svg className="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -563,26 +703,21 @@ function HomeContent() {
               </div>
             ) : (
               <>
-                <h3 className="text-lg font-bold mb-4 text-white">回報問題</h3>
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-400 mb-2">問題類型 *</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'bug', label: '功能異常' },
-                      { value: 'data_error', label: '資料錯誤' },
-                      { value: 'suggestion', label: '功能建議' },
-                      { value: 'other', label: '其他問題' },
-                    ].map((option) => (
+                    {ISSUE_TYPE_OPTIONS.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => setIssueType(option.value)}
-                        className={`px-4 py-2 rounded-lg border-2 text-sm transition-colors ${
+                        className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm transition-all duration-200 ${
                           issueType === option.value
-                            ? 'border-white bg-white text-gray-900'
+                            ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
                             : 'border-gray-700 text-gray-300 hover:border-gray-600'
                         }`}
                       >
+                        {option.icon}
                         {option.label}
                       </button>
                     ))}
@@ -595,18 +730,55 @@ function HomeContent() {
                     type="text"
                     value={issueTitle}
                     onChange={(e) => setIssueTitle(e.target.value)}
-                    placeholder="簡述您遇到的問題"
+                    placeholder={
+                      issueType === 'bug' ? '例：搜尋功能無法使用' :
+                      issueType === 'data_error' ? '例：某公仔的市場價格不正確' :
+                      issueType === 'suggestion' ? '例：希望新增比價功能' :
+                      '一句話描述你遇到的問題'
+                    }
                     maxLength={100}
                     className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500"
                   />
                 </div>
+
+                {/* 動態欄位：資料錯誤 - 哪筆資料有誤 */}
+                {issueType === 'data_error' && (
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-400 mb-2">哪筆資料有誤？</label>
+                    <input
+                      type="text"
+                      value={issueAffectedFigure}
+                      onChange={(e) => setIssueAffectedFigure(e.target.value)}
+                      placeholder="例：海賊王 魯夫 四檔 1/4"
+                      className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none bg-gray-800 text-white placeholder:text-gray-500"
+                    />
+                  </div>
+                )}
+
+                {/* 動態欄位：功能異常 - 重現步驟 */}
+                {issueType === 'bug' && (
+                  <div className="mb-4">
+                    <label className="block text-sm text-gray-400 mb-2">重現步驟</label>
+                    <textarea
+                      value={issueStepsToReproduce}
+                      onChange={(e) => setIssueStepsToReproduce(e.target.value)}
+                      placeholder="1. 先做了什麼&#10;2. 然後做了什麼&#10;3. 就出現了問題"
+                      rows={3}
+                      className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none resize-none bg-gray-800 text-white placeholder:text-gray-500"
+                    />
+                  </div>
+                )}
 
                 <div className="mb-4">
                   <label className="block text-sm text-gray-400 mb-2">詳細描述 *</label>
                   <textarea
                     value={issueDescription}
                     onChange={(e) => setIssueDescription(e.target.value)}
-                    placeholder="請詳細描述問題的情況、重現步驟等..."
+                    placeholder={
+                      issueType === 'suggestion'
+                        ? '請描述你想要的功能，以及它能解決什麼問題...'
+                        : '請詳細描述問題的情況...'
+                    }
                     maxLength={2000}
                     rows={4}
                     className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl focus:border-indigo-500 focus:outline-none resize-none bg-gray-800 text-white placeholder:text-gray-500"
@@ -642,6 +814,7 @@ function HomeContent() {
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       )}

@@ -29,8 +29,26 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending')
 
+    // 檢查重複：相同 figure_name 的其他回報（不限 email）
+    const reportsWithDuplicates = await Promise.all(
+      (data || []).map(async (report: Record<string, unknown>) => {
+        const { data: duplicates } = await supabase
+          .from('price_reports')
+          .select('id, email, figure_name, deal_price, status, created_at')
+          .ilike('figure_name', report.figure_name as string)
+          .neq('id', report.id as string)
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        return {
+          ...report,
+          duplicates: duplicates && duplicates.length > 0 ? duplicates : null,
+        }
+      })
+    )
+
     return NextResponse.json({
-      reports: data,
+      reports: reportsWithDuplicates,
       total: count || 0,
       pendingCount: pendingCount || 0,
       limit,

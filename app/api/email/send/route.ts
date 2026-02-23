@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
       simulated: result.simulated,
       message: result.simulated ? '郵件已模擬發送（尚未設定 Gmail 環境變數）' : '郵件已發送',
     })
-  } catch {
+  } catch (err) {
+    console.error('[Email API] 發送失敗:', err)
     return NextResponse.json({ error: '郵件發送失敗' }, { status: 500 })
   }
 }

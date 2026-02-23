@@ -123,6 +123,15 @@ export async function GET() {
       // daily_visits 表可能尚未建立，靜默失敗
     }
 
+    // PWA 安裝數量
+    let pwaInstallCount = 0
+    try {
+      const { count } = await supabase
+        .from('pwa_installs')
+        .select('*', { count: 'exact', head: true })
+      pwaInstallCount = count || 0
+    } catch {}
+
     return NextResponse.json({
       figures_count: figuresCount || 0,
       transactions_count: transactionsCount || 0,
@@ -136,6 +145,7 @@ export async function GET() {
       today_visitors: todayVisitors,
       yesterday_visitors: yesterdayVisitors,
       weekly_visitors: weeklyVisitors,
+      pwa_installs: pwaInstallCount,
     })
   } catch (error) {
     console.error('Stats error:', error)

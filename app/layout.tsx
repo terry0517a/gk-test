@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_TC, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import VisitTracker from "@/components/VisitTracker";
+import InstallPrompt from "@/components/InstallPrompt";
 import LotteryFab from "@/components/LotteryFab";
 
 const notoSansTC = Noto_Sans_TC({
@@ -52,6 +53,7 @@ export default function RootLayout({
     <html lang="zh-TW">
       <body className={`${notoSansTC.variable} ${dmSerifDisplay.variable} font-sans antialiased`}>
         <VisitTracker />
+        <InstallPrompt />
         {children}
         <LotteryFab />
       </body>
