@@ -7,7 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-type Platform = 'ios' | 'android' | null
+type Platform = 'ios' | 'android' | 'desktop' | null
 
 export default function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false)
