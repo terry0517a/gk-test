@@ -7,10 +7,12 @@ const nextConfig: NextConfig = {
   // 允許外部圖片域名
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: 'shoplineimg.com' },
+      { protocol: 'https', hostname: 'img.shoplineapp.com' },
+      { protocol: 'https', hostname: 'wlwklnictyowdnmzronw.supabase.co' },
+      { protocol: 'https', hostname: 'cdn.shopify.com' },
+      { protocol: 'https', hostname: '*.waca.ec' },
+      { protocol: 'https', hostname: '*.waca.tw' },
     ],
   },
 };
