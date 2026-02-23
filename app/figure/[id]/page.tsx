@@ -13,12 +13,17 @@ interface Figure {
   series: string | null
   version: string | null
   scale: string | null
+  tag: string | null
   release_year: number | null
   original_price: number | null
   image_url: string | null
   market_price_min: number | null
   market_price_max: number | null
   ai_sentiment: string
+  dimensions: string | null
+  material: string | null
+  order_date: string | null
+  shipping_date: string | null
 }
 
 interface Transaction {
@@ -209,7 +214,9 @@ export default function FigurePage({ params }: { params: Promise<{ id: string }>
         {/* Basic Info */}
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="px-2 py-1 text-xs rounded bg-amber-900/50 text-amber-300 font-medium">GK公仔</span>
+            {figure.tag && (
+              <span className="px-2 py-1 text-xs rounded bg-amber-900/50 text-amber-300 font-medium">{figure.tag}</span>
+            )}
             {figure.series && (
               <span className="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300">{figure.series}</span>
             )}
@@ -248,6 +255,43 @@ export default function FigurePage({ params }: { params: Promise<{ id: string }>
             </div>
           )}
         </div>
+
+        {/* 詳細規格 */}
+        {(figure.dimensions || figure.material || figure.shipping_date || figure.order_date || figure.tag) && (
+          <div className="bg-gray-800 rounded-xl p-4 space-y-3">
+            <h3 className="font-medium text-white mb-2">詳細規格</h3>
+            {figure.tag && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">作品</span>
+                <span className="text-white">{figure.tag}</span>
+              </div>
+            )}
+            {figure.dimensions && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">規格尺寸</span>
+                <span className="text-white">{figure.dimensions}</span>
+              </div>
+            )}
+            {figure.material && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">材質說明</span>
+                <span className="text-white">{figure.material}</span>
+              </div>
+            )}
+            {figure.order_date && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">開訂時間</span>
+                <span className="text-white">{figure.order_date}</span>
+              </div>
+            )}
+            {figure.shipping_date && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">預計出貨</span>
+                <span className="text-white">{figure.shipping_date}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* AI Sentiment */}
         {figure.ai_sentiment && (
